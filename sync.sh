@@ -11,6 +11,8 @@ SYNC_DIR="/home/ubuntu/obsidian-sync"
 HERMES_DIR="/home/ubuntu/.hermes"
 TODAY=$(date +%Y%m%d)
 TODAY_CN=$(date +%Y年%m月%d日)
+YESTERDAY=$(date -d "yesterday" +%Y%m%d)
+YESTERDAY_CN=$(date -d "yesterday" +%Y年%m月%d日)
 
 echo "🔄 Obsidian 同步开始 — $(date '+%Y-%m-%d %H:%M:%S')"
 echo ""
@@ -56,29 +58,42 @@ else
 fi
 
 # ---------- 5. 美股A股报告 (xlsx → 保留原文件 + 简单说明) ----------
-SRC="$HERMES_DIR/daily-finance-output/${TODAY}_美股Top10_11Sheet.xlsx"
+# 周末/周一执行时，报告文件名可能用前一交易日日期，因此同时检查今天和昨天
+SRC_TODAY="$HERMES_DIR/daily-finance-output/${TODAY}_美股Top10_11Sheet.xlsx"
+SRC_YDAY="$HERMES_DIR/daily-finance-output/${YESTERDAY}_美股Top10_11Sheet.xlsx"
 DST_DIR="$SYNC_DIR/05-美股A股报告"
-if [ -f "$SRC" ]; then
+FOUND_SRC=""
+FOUND_DATE=""
+if [ -f "$SRC_TODAY" ]; then
+    FOUND_SRC="$SRC_TODAY"
+    FOUND_DATE="$TODAY"
+elif [ -f "$SRC_YDAY" ]; then
+    FOUND_SRC="$SRC_YDAY"
+    FOUND_DATE="$YESTERDAY"
+fi
+
+if [ -n "$FOUND_SRC" ]; then
     # Excel 不适合转 markdown，复制原文件 + 生成索引 md
-    cp "$SRC" "$DST_DIR/${TODAY}_美股Top10_11Sheet.xlsx"
-    cat > "$DST_DIR/${TODAY}_美股A股报告.md" << EOF
+    cp "$FOUND_SRC" "$DST_DIR/${FOUND_DATE}_美股Top10_11Sheet.xlsx"
+    REPORT_DATE_CN=$(date -d "${FOUND_DATE:0:4}-${FOUND_DATE:4:2}-${FOUND_DATE:6:2}" +%Y年%m月%d日 2>/dev/null || echo "$TODAY_CN")
+    cat > "$DST_DIR/${FOUND_DATE}_美股A股报告.md" << EOF
 ---
-date: ${TODAY_CN}
+date: ${REPORT_DATE_CN}
 type: 投资报告
 tags: [美股, A股, 投资]
 ---
 
 # 📊 美股 Top10 × A股 合作伙伴报告
 
-> 生成日期：${TODAY_CN}
+> 报告覆盖日期：${REPORT_DATE_CN} | 同步日期：${TODAY_CN}
 
-📎 附件：[${TODAY}_美股Top10_11Sheet.xlsx](${TODAY}_美股Top10_11Sheet.xlsx)
+📎 附件：[${FOUND_DATE}_美股Top10_11Sheet.xlsx](${FOUND_DATE}_美股Top10_11Sheet.xlsx)
 
 > ⚠️ 此报告为 11 Sheet Excel 文件，含美股涨幅前10及对应A股合作企业完整财务数据，请在 Obsidian 中点击附件查看。
 EOF
-    echo "✅ 美股A股报告"
+    echo "✅ 美股A股报告 (覆盖日期: ${FOUND_DATE})"
 else
-    echo "⚠️  美股A股报告 — 文件不存在，跳过"
+    echo "⚠️  美股A股报告 — 今日和昨日文件均不存在，跳过"
 fi
 
 # ---------- 6. 投资理财早报 ----------
