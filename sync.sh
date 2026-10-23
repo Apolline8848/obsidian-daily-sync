@@ -18,10 +18,10 @@ echo "🔄 Obsidian 同步开始 — $(date '+%Y-%m-%d %H:%M:%S')"
 echo ""
 
 # ---------- 1. 数学知识点 ----------
-SRC="$HERMES_DIR/daily-math-knowledge/output/${TODAY}_每日数学知识点.docx"
+SRC="$HERMES_DIR/daily-math-knowledge/output/${TODAY}_每日数学题.docx"
 DST_DIR="$SYNC_DIR/01-数学知识点"
 if [ -f "$SRC" ]; then
-    pandoc "$SRC" -t markdown -o "$DST_DIR/${TODAY}_每日数学知识点.md" --wrap=none 2>/dev/null
+    pandoc "$SRC" -t markdown -o "$DST_DIR/${TODAY}_每日数学题.md" --wrap=none 2>/dev/null
     echo "✅ 数学知识点"
 else
     echo "⚠️  数学知识点 — 文件不存在，跳过"
@@ -38,17 +38,18 @@ else
 fi
 
 # ---------- 3. 英语词汇 ----------
-SRC="$HERMES_DIR/daily-essay-output/${TODAY}_英语词汇故事.docx"
+SRC=$(find /home/ubuntu -maxdepth 1 -name "英语词汇故事_Day*.docx" -newermt "$(date +%Y-%m-%d)" 2>/dev/null | sort | tail -1)
 DST_DIR="$SYNC_DIR/03-英语词汇"
-if [ -f "$SRC" ]; then
-    pandoc "$SRC" -t markdown -o "$DST_DIR/${TODAY}_英语词汇故事.md" --wrap=none 2>/dev/null
-    echo "✅ 英语词汇"
+if [ -n "$SRC" ] && [ -f "$SRC" ]; then
+    DAY=$(basename "$SRC" .docx | sed 's/英语词汇故事_//')
+    pandoc "$SRC" -t markdown -o "$DST_DIR/${TODAY}_英语词汇故事_${DAY}.md" --wrap=none 2>/dev/null
+    echo "✅ 英语词汇 ($DAY)"
 else
-    echo "⚠️  英语词汇 — 文件不存在，跳过"
+    echo "⚠️  英语词汇 — 今日文件不存在，跳过"
 fi
 
 # ---------- 4. 物理知识点 ----------
-SRC="$HERMES_DIR/daily-physics-knowledge/output/${TODAY}_每日物理知识点.docx"
+SRC="$HERMES_DIR/daily-physics-knowledge/output/每日物理知识点_${TODAY}.docx"
 DST_DIR="$SYNC_DIR/04-物理知识点"
 if [ -f "$SRC" ]; then
     pandoc "$SRC" -t markdown -o "$DST_DIR/${TODAY}_每日物理知识点.md" --wrap=none 2>/dev/null
@@ -114,6 +115,17 @@ if [ -f "$SRC" ]; then
     echo "✅ AI早报"
 else
     echo "⚠️  AI早报 — 文件不存在，跳过"
+fi
+
+# ---------- 8. 历史上的今天 ----------
+SRC="$HERMES_DIR/daily-essay-output/历史上的今天$(date +%Y-%m-%d).docx"
+DST_DIR="$SYNC_DIR/08-历史上的今天"
+if [ -f "$SRC" ]; then
+    mkdir -p "$DST_DIR"
+    pandoc "$SRC" -t markdown -o "$DST_DIR/${TODAY}_历史上的今天.md" --wrap=none 2>/dev/null
+    echo "✅ 历史上的今天"
+else
+    echo "⚠️  历史上的今天 — 文件不存在，跳过"
 fi
 
 # ---------- 9. 作文素材 ----------
